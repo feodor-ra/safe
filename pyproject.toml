@@ -8,7 +8,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-dev = ["pyright[nodejs]==1.1.389", "ruff==0.8.0"]
+dev = ["pyright[nodejs]==1.1.389", "ruff==0.8.0", "typos>=1.27.3"]
 
 [build-system]
 requires = ["hatchling"]
