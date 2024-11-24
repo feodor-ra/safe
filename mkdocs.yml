@@ -1,0 +1,40 @@
+site_name: safe-returns
+site_url: https://feodor-ra.github.io/safe-returns/
+nav:
+  - Главная: index.md
+  - Возможности: features.md
+theme:
+  name: material
+  language: ru
+  palette:
+    - media: "(prefers-color-scheme)"
+      primary: purple
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - content.code.copy
+repo_url: https://github.com/feodor-ra/safe-returns
+markdown_extensions:
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
