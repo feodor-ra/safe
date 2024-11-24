@@ -5,6 +5,14 @@ description = "Safe returns function decorator"
 readme = "README.md"
 authors = [{ name = "Fedor Ratschew", email = "feodor.ra@me.com" }]
 requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Utilities",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.11",
+]
 dependencies = []
 
 [dependency-groups]
@@ -15,6 +23,11 @@ dev = [
     "ruff==0.8.0",
     "typos>=1.27.3",
 ]
+
+[project.urls]
+Repository = "https://github.com/feodor-ra/safe-returns"
+Homepage = "https://github.com/feodor-ra/safe-returns"
+Documentation = "https://feodor-ra.github.io/safe-returns/"
 
 [build-system]
 requires = ["hatchling"]
