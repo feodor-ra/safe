@@ -1,6 +1,6 @@
 [project]
 name = "safe-returns"
-version = "0.1.0"
+version = "0.1.1"
 description = "Safe returns function decorator"
 readme = "README.md"
 authors = [{ name = "Fedor Ratschew", email = "feodor.ra@me.com" }]
