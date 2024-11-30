@@ -1,11 +1,22 @@
 site_name: safe-returns
 site_url: https://feodor-ra.github.io/safe-returns/
+extra:
+  alternate:
+    - name: Русский
+      link: /safe-returns/ru/
+      lang: ru
+    - name: English
+      link: /safe-returns/en/
+      lang: en
 nav:
-  - Главная: index.md
-  - Возможности: features.md
+  - Русский:
+      - Главная: ru/index.md
+      - Возможности: ru/features.md
+  - English:
+      - Home: en/index.md
+      - Features: en/features.md
 theme:
   name: material
-  language: ru
   palette:
     - media: "(prefers-color-scheme)"
       primary: purple
