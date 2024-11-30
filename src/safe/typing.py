@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Generic, ParamSpec, TypeAlias, TypeVar
+from typing import Generic, ParamSpec, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 T = TypeVar("T")
 E_co = TypeVar("E_co", bound=Exception, covariant=True)
@@ -47,3 +48,8 @@ R: TypeAlias = Success[T] | Failure[T, E_co]
 
 
 __all__ = ("Failure", "Success")
+
+
+@runtime_checkable
+class Wrapper(Protocol):
+    __registered__: Iterable[type[Exception]]
