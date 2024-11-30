@@ -138,7 +138,21 @@ class SafeSyncFullDecorator(SafeDecorator[E_co]):
 
 
 class SafeAsyncFullDecorator(SafeDecorator[E_co]):
-    def __or__(self, value: type[N], /) -> SafeAsyncFullDecorator[E_co | N]:
+    @overload
+    def __or__(self, value: type[N], /) -> SafeAsyncFullDecorator[E_co | N]: ...
+    @overload
+    def __or__(self, value: Iterable[type[N]], /) -> SafeAsyncFullDecorator[E_co | N]: ...
+    @overload
+    def __or__(self, value: SafeWrapper[Any, Any, N], /) -> SafeAsyncFullDecorator[E_co | N]: ...
+    def __or__(
+        self,
+        value: type[N] | Iterable[type[N]] | SafeWrapper[Any, Any, N],
+        /,
+    ) -> SafeAsyncFullDecorator[E_co | N]:
+        if isinstance(value, Iterable):
+            return self.combine(self, *value)
+        if isinstance(value, SafeWrapper):
+            return self.combine(self, *value.registered)
         return self.combine(self, value)
 
     def __call__(
