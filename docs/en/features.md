@@ -150,23 +150,6 @@ def bar(a: int) -> list[str]:
     return [foo(a).unsafe]
 ```
 
-### Retrieving the Original Function
-
-If you need to get the original function without the safe-catching mechanism, you can access it through the `unsafe` property.
-
-```python
-from safe import safe
-
-@safe @ KeyError
-def foo(a: int) -> tuple[int, int]: ...
-
-
-foo         # (int) -> Success[tuple[int, int]] | Failure[int, KeyError]
-foo.unsafe  # (int) -> tuple[int, int]
-
-foo.unsafe(5)
-```
-
 ### Utilities `is_success` and `is_failure`
 
 The library provides `is_success` and `is_failure` utilities for convenience and to avoid repeated checks.
@@ -190,6 +173,19 @@ else:
 ```
 
 These utilities serve as `TypeGuard` checks for `isinstance`.
+
+### Utility registered
+
+The library provides the registered utility, which allows retrieving the registered exception types for a decorated function.
+
+```python
+from safe import registered, safe
+
+@safe @ ValueError | KeyError
+def foo() -> None: ...
+
+registered(foo) # {KeyError, ValueError}
+```
 
 ### Pattern Matching
 

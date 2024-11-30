@@ -160,24 +160,6 @@ def bar(a: int) -> list[str]:
     return [foo(a).unsafe]
 ```
 
-### Получение оригинала функции
-
-Если есть необходимость получить оригинальную функцию, без механизма безлопастного перехвата,
-у функции можно вызвать *property* `unsafe`
-
-```python
-from safe import safe
-
-@safe @ KeyError
-def foo(a: int) -> tuple[int, int]: ...
-
-
-foo         # (int) -> Success[tuple[int, int]] | Failure[int, KeyError]
-foo.unsafe  # (int) -> tuple[int, int]
-
-foo.unsafe(5)
-```
-
 ### Утилиты `is_success` и `is_failure`
 
 Библиотека содержит утилиты `is_success` и `is_failure` для удобства работы и избежания проверок
@@ -201,6 +183,20 @@ else:
 ```
 
 Сами они являются `TypeGuard` проверкой `isinstance`.
+
+### Утилита `registered`
+
+Библиотека содержит утилиту `registered`, с помощью которой можно получить
+зарегистрированные типы для задекорированной функции.
+
+```python
+from safe import registered, safe
+
+@safe @ ValueError | KeyError
+def foo() -> None: ...
+
+registered(foo) # {KeyError, ValueError}
+```
 
 ### Паттер-матчинг
 

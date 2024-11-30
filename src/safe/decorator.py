@@ -1,53 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Coroutine, Iterable
-from functools import update_wrapper
-from typing import Any, Generic, Self, overload
+from functools import wraps
+from typing import Any, Generic, Self, cast, overload
 
-from .typing import E_co, Failure, N, P, Success, T
-
-
-class SafeWrapper(Generic[P, T, E_co]):
-    def __init__(self, func: Callable[P, T], decorator: SafeDecorator[E_co]) -> None:
-        self._func = func
-        self._decorator = decorator
-        update_wrapper(self, func)  # type: ignore reportArgumentType
-
-    @property
-    def registered(self) -> Iterable[type[E_co]]:
-        """Registered exception types that the decorator catches."""
-        return self._decorator.registered
-
-    @property
-    def unsafe(self) -> Callable[P, T]:
-        """The original non-decorated function."""
-        return self._func
-
-
-class SafeSyncWrapper(SafeWrapper[P, T, Any]):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Success[T]:
-        return Success(self._func(*args, **kwargs))
-
-
-class SafeSyncFullWrapper(SafeWrapper[P, T, E_co]):
-    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Success[T] | Failure[T, E_co]:
-        try:
-            return Success(self._func(*args, **kwargs))
-        except self._decorator.registered as exc:
-            return Failure(exc)
-
-
-class SafeAsyncWrapper(SafeWrapper[P, Coroutine[Any, Any, T], Any]):
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Success[T]:
-        return Success(await self._func(*args, **kwargs))
-
-
-class SafeAsyncFullWrapper(SafeWrapper[P, Coroutine[Any, Any, T], E_co]):
-    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Success[T] | Failure[T, E_co]:
-        try:
-            return Success(await self._func(*args, **kwargs))
-        except self._decorator.registered as exc:
-            return Failure(exc)
+from .typing import E_co, Failure, N, P, Success, T, Wrapper
 
 
 class SafeDecorator(Generic[E_co]):
@@ -69,20 +26,40 @@ class SafeSyncDecorator(SafeDecorator[Any]):
     @overload
     def __matmul__(self, value: Iterable[type[N]], /) -> SafeSyncFullDecorator[N]: ...
     @overload
-    def __matmul__(self, value: SafeWrapper[Any, Any, N], /) -> SafeSyncFullDecorator[N]: ...
     def __matmul__(
         self,
-        value: type[N] | Iterable[type[N]] | SafeWrapper[Any, Any, N],
+        value: Callable[..., Success[Any] | Failure[Any, N]],
+        /,
+    ) -> SafeSyncFullDecorator[N]: ...
+    @overload
+    def __matmul__(
+        self,
+        value: Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
+        /,
+    ) -> SafeSyncFullDecorator[N]: ...
+    def __matmul__(
+        self,
+        value: type[N]
+        | Iterable[type[N]]
+        | Callable[..., Success[Any] | Failure[Any, N]]
+        | Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeSyncFullDecorator[N]:
+        if isinstance(value, type) and issubclass(value, Exception):
+            return SafeSyncFullDecorator[N].combine(self, value)
         if isinstance(value, Iterable):
             return SafeSyncFullDecorator[N].combine(self, *value)
-        if isinstance(value, SafeWrapper):
-            return SafeSyncFullDecorator[N].combine(self, *value.registered)
-        return SafeSyncFullDecorator[N].combine(self, value)
+        if isinstance(value, Wrapper):
+            return SafeSyncFullDecorator[N].combine(self, *value.__registered__)
+        return cast(SafeSyncFullDecorator[N], self)
 
-    def __call__(self, func: Callable[P, T]) -> SafeSyncWrapper[P, T]:
-        return SafeSyncWrapper(func, self)
+    def __call__(self, func: Callable[P, T]) -> Callable[P, Success[T]]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Success[T]:
+            return Success(func(*args, **kwargs))
+
+        wrapper.__registered__ = self.registered  # type: ignore reportFunctionMemberAccess
+
+        return wraps(func)(wrapper)
 
 
 class SafeAsyncDecorator(SafeDecorator[Any]):
@@ -93,22 +70,41 @@ class SafeAsyncDecorator(SafeDecorator[Any]):
     @overload
     def __matmul__(
         self,
-        value: SafeWrapper[Any, Any, N],
+        value: Callable[..., Success[Any] | Failure[Any, N]],
+        /,
+    ) -> SafeAsyncFullDecorator[N]: ...
+    @overload
+    def __matmul__(
+        self,
+        value: Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeAsyncFullDecorator[N]: ...
     def __matmul__(
         self,
-        value: type[N] | Iterable[type[N]] | SafeWrapper[Any, Any, N],
+        value: type[N]
+        | Iterable[type[N]]
+        | Callable[..., Success[Any] | Failure[Any, N]]
+        | Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeAsyncFullDecorator[N]:
+        if isinstance(value, type) and issubclass(value, Exception):
+            return SafeAsyncFullDecorator[N].combine(self, value)
         if isinstance(value, Iterable):
             return SafeAsyncFullDecorator[N].combine(self, *value)
-        if isinstance(value, SafeWrapper):
-            return SafeAsyncFullDecorator[N].combine(self, *value.registered)
-        return SafeAsyncFullDecorator[N].combine(self, value)
+        if isinstance(value, Wrapper):
+            return SafeAsyncFullDecorator[N].combine(self, *value.__registered__)
+        return cast(SafeAsyncFullDecorator[N], self)
 
-    def __call__(self, func: Callable[P, Coroutine[Any, Any, T]]) -> SafeAsyncWrapper[P, T]:
-        return SafeAsyncWrapper(func, self)
+    def __call__(
+        self,
+        func: Callable[P, Coroutine[Any, Any, T]],
+    ) -> Callable[P, Coroutine[Any, Any, Success[T]]]:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Success[T]:
+            return Success(await func(*args, **kwargs))
+
+        wrapper.__registered__ = self.registered  # type: ignore reportFunctionMemberAccess
+
+        return wraps(func)(wrapper)
 
 
 class SafeSyncFullDecorator(SafeDecorator[E_co]):
@@ -119,22 +115,40 @@ class SafeSyncFullDecorator(SafeDecorator[E_co]):
     @overload
     def __or__(
         self,
-        value: SafeWrapper[Any, Any, N],
+        value: Callable[..., Success[Any] | Failure[Any, N]],
+        /,
+    ) -> SafeSyncFullDecorator[E_co | N]: ...
+    @overload
+    def __or__(
+        self,
+        value: Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeSyncFullDecorator[E_co | N]: ...
     def __or__(
         self,
-        value: type[N] | Iterable[type[N]] | SafeWrapper[Any, Any, N],
+        value: type[N]
+        | Iterable[type[N]]
+        | Callable[..., Success[Any] | Failure[Any, N]]
+        | Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeSyncFullDecorator[E_co | N]:
+        if isinstance(value, type) and issubclass(value, Exception):
+            return self.combine(self, value)
         if isinstance(value, Iterable):
             return self.combine(self, *value)
-        if isinstance(value, SafeWrapper):
-            return self.combine(self, *value.registered)
-        return self.combine(self, value)
+        if isinstance(value, Wrapper):
+            return self.combine(self, *value.__registered__)
+        return self
 
-    def __call__(self, func: Callable[P, T]) -> SafeSyncFullWrapper[P, T, E_co]:
-        return SafeSyncFullWrapper(func, self)
+    def __call__(self, func: Callable[P, T]) -> Callable[P, Success[T] | Failure[T, E_co]]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Success[T] | Failure[T, E_co]:
+            try:
+                return Success(func(*args, **kwargs))
+            except self.registered as exc:
+                return Failure(exc)
+
+        wrapper.__registered__ = self.registered  # type: ignore reportFunctionMemberAccess
+        return wraps(func)(wrapper)
 
 
 class SafeAsyncFullDecorator(SafeDecorator[E_co]):
@@ -143,23 +157,45 @@ class SafeAsyncFullDecorator(SafeDecorator[E_co]):
     @overload
     def __or__(self, value: Iterable[type[N]], /) -> SafeAsyncFullDecorator[E_co | N]: ...
     @overload
-    def __or__(self, value: SafeWrapper[Any, Any, N], /) -> SafeAsyncFullDecorator[E_co | N]: ...
     def __or__(
         self,
-        value: type[N] | Iterable[type[N]] | SafeWrapper[Any, Any, N],
+        value: Callable[..., Success[Any] | Failure[Any, N]],
+        /,
+    ) -> SafeAsyncFullDecorator[E_co | N]: ...
+    @overload
+    def __or__(
+        self,
+        value: Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
+        /,
+    ) -> SafeAsyncFullDecorator[E_co | N]: ...
+    def __or__(
+        self,
+        value: type[N]
+        | Iterable[type[N]]
+        | Callable[..., Success[Any] | Failure[Any, N]]
+        | Callable[..., Coroutine[Any, Any, Success[Any] | Failure[Any, N]]],
         /,
     ) -> SafeAsyncFullDecorator[E_co | N]:
+        if isinstance(value, type) and issubclass(value, Exception):
+            return self.combine(self, value)
         if isinstance(value, Iterable):
             return self.combine(self, *value)
-        if isinstance(value, SafeWrapper):
-            return self.combine(self, *value.registered)
-        return self.combine(self, value)
+        if isinstance(value, Wrapper):
+            return self.combine(self, *value.__registered__)
+        return self
 
     def __call__(
         self,
         func: Callable[P, Coroutine[Any, Any, T]],
-    ) -> SafeAsyncFullWrapper[P, T, E_co]:
-        return SafeAsyncFullWrapper(func, self)
+    ) -> Callable[P, Coroutine[Any, Any, Success[T] | Failure[T, E_co]]]:
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Success[T] | Failure[T, E_co]:
+            try:
+                return Success(await func(*args, **kwargs))
+            except self.registered as exc:
+                return Failure(exc)
+
+        wrapper.__registered__ = self.registered  # type: ignore reportFunctionMemberAccess
+        return wraps(func)(wrapper)
 
 
 safe = SafeSyncDecorator([])

@@ -1,6 +1,6 @@
 [project]
 name = "safe-returns"
-version = "0.1.1"
+version = "0.1.2"
 description = "Safe returns function decorator"
 readme = "README.md"
 authors = [{ name = "Fedor Ratschew", email = "feodor.ra@me.com" }]
@@ -73,7 +73,7 @@ preview = true
 [tool.pyright]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
-exclude = [".venv/*"]
+exclude = [".venv/*", "tests/*"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
