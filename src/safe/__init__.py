@@ -32,6 +32,15 @@ def bar():
 
 from .decorator import async_safe, safe
 from .typing import Failure, Success
-from .utils import is_failure, is_success, registered
+from .utils import is_failure, is_success, registered, unsafe
 
-__all__ = ("Failure", "Success", "async_safe", "is_failure", "is_success", "registered", "safe")
+__all__ = (
+    "Failure",
+    "Success",
+    "async_safe",
+    "is_failure",
+    "is_success",
+    "registered",
+    "safe",
+    "unsafe",
+)

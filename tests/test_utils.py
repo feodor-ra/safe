@@ -2,8 +2,8 @@ from typing import Any
 
 import pytest
 
-from src.safe import Failure, Success, is_failure, is_success, registered, safe
-from tests.helpers import simple_function
+from src.safe import Failure, Success, is_failure, is_success, registered, safe, unsafe
+from tests.helpers import error_function, simple_function
 
 
 @pytest.mark.parametrize(
@@ -38,3 +38,21 @@ def test_registered_from_same():
         return Success(1)
 
     assert list(registered(func)) == []
+
+
+def test_unsafe():
+    decorated = safe(simple_function)
+    value = 10
+
+    result = decorated(value)
+
+    assert unsafe(result) == value
+
+
+def test_unsafe_error():
+    decorated = (safe @ Exception)(error_function)
+
+    result = decorated(Exception("test"))
+
+    with pytest.raises(Exception, match="test"):
+        unsafe(result)
