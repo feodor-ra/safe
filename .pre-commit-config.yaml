@@ -8,6 +8,10 @@ repos:
     hooks:
       - id: ruff
       - id: ruff-format
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.5.5
+    hooks:
+      - id: uv-lock
   - repo: https://github.com/RobertCraigie/pyright-python
     rev: v1.1.389
     hooks:
