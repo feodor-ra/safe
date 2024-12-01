@@ -34,4 +34,9 @@ def registered(
     return ()
 
 
-__all__ = ("is_failure", "is_success", "registered")
+def unsafe(result: Success[T] | Failure[T, Any], /) -> T:
+    """Equivalent to result.unsafe."""  # noqa: DOC201
+    return result.unsafe
+
+
+__all__ = ("is_failure", "is_success", "registered", "unsafe")
